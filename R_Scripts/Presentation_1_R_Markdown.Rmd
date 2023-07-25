@@ -5,122 +5,99 @@ date: "2023-07-24"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyverse)
+library(ggplot2)
 ```
 
-## R Markdown
+## Importing and combining the Data from two csv files
+Steps:\
+1. Import both the csv files\
+2. Convert the gene expression into long format\
+3. Inner join it with meta data\
 
-```{r import data}
+```{r warning=FALSE}
 
-
+#set current working directory to the previous folder
 setwd("../")
+
+#import the geneExpression and metaData csv from the data folder
 data_gene_Expression <- read.csv("data/QBS103_finalProject_geneExpression.csv", header=TRUE)
-# head(data_gene_Expression)
-
-
 data_meta <- read.csv("data/QBS103_finalProject_metadata.csv", header=TRUE)
-#head(data_meta)
-
-#Since we have so many columns that are the data we need to combine our df with other file, we convert this wide from into long form
 
 
+#We convert the geneExpression data from wide form into long form
 data_gene_Expression.longForm <- data_gene_Expression %>%
   pivot_longer(cols = starts_with(c("COVID_","NONCOVID_")),
   names_to = "participant_id",
   values_to = "gene_expression_value"
   )
 
-#make a final data frame by combining the two data sets
-
-final_df <- data_gene_Expression.longForm %>% inner_join( data_meta, 
-           by=c('participant_id'))
+#make a final data frame by combining the two data sets and making it a data frame
+final_df <- as.data.frame(data_gene_Expression.longForm %>% inner_join( data_meta, 
+           by=c('participant_id')))
 
 ```
 
-## Including Plots
+## Pre-processing the data
+Steps:\
+1. Remove "unknown" strings and prefixes\
+2. Convert the class the columns to their appropriate type\
 
-You can also embed plots, for example:
-
-```{r tidy the data}
+```{r warning=FALSE}
 
 #rename with x column with gene
-
 final_df <- rename(final_df, gene = X)
-#convert all the unknown strings in the data from to NAs
-#final_df$apacheii <- na_if(final_df$apacheii, ' unknown')
 
+#remove all unknown strings and substitute it with NAs
 final_df[, 16:27][final_df[, 16:27] == ' unknown' | final_df[, 16:27] == 'unknown'] <- NA
 
 #format the disease status column to just include the status
-
-
-
 final_df$disease_status <- sub('disease state: ', '', final_df$disease_status)
 
 #convert the column type of disease_status, sex, icu_status and mechanical_ventilation to factor
 final_df <- final_df %>% 
   mutate_at(vars(disease_status, sex, icu_status, mechanical_ventilation), as.factor)
 
-#the class of age, charlson_score is character where it should be numerical
-
-
-
-#Convert it to integer
-
-#final_df$age <- as.integer(final_df$age)
-
+#convert the class of age, charlson_score
 final_df <- final_df %>% 
   mutate_at(vars(age, apacheii,ferritin.ng.ml., crp.mg.l., ddimer.mg.l_feu., procalcitonin.ng.ml.., lactate.mmol.l., fibrinogen, sofa), as.integer)
 
-#lets see the unique genes are there in the data frame
-unique(final_df$gene)
-
-#frequency_df <- data.frame('gene' = unique(final_df$gene),'')
-#frequency_df <- as.data.frame(table(final_df$gene))
-
 ```
-Identify one gene, one continuous covariate, and two categorical covariates in the
-provided dataset.
-```{r}
-# i will choose the  gene
-# my one  continuous covariate would be age and the two categorical covariates would be ICU status and disease status
-#ABCB10
 
-
+## Create a sub set with a chosen continous covariate and 2 categorical covariates
+```{r warning=FALSE}
 final_subset <- final_df[final_df$gene == 'AAMP', c('gene','gene_expression_value','age', 'icu_status', 'disease_status')]
+
+head(final_subset)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Histogram for Gene Expression
 
-```{r}
-# Create the histogram plot for Gene Expression
-ggplot(final_subset, aes(x = gene_expression_value))  +
+```{r warning=FALSE}
+
+ggplot(final_subset, aes(x = gene_expression_value)) +
   geom_histogram(binwidth = 2, color = "white", fill = "#DB7093") +
   theme_minimal() +
-    theme(
+  theme(
     panel.background = element_rect(fill = "black"),
     plot.background = element_rect(fill = "black"),
     axis.line = element_line(color = "white"),
-    axis.text = element_text(color = "white"),
+    axis.text = element_text(color = "white", size = 12),
+    axis.title = element_text(color = "white", size = 14),
     panel.grid = element_blank(),
-    plot.title = element_text(color = "white", size = 16, face = "bold", hjust = 0.4)
+    plot.title = element_text(color = "white", size = 16, face = "bold", hjust = 0.4),
   ) +
   ggtitle("Histogram of gene expression") +
-  xlab("gene expression")+
+  xlab("Gene Expression") +
   ylab("Frequency")
 ```
 
-```{r}
-# ggplot(final_subset, aes(x = age, y = gene_expression_value)) +
-#   geom_point(color = "blue") +
-#   ggtitle("Scatter Plot of Gene Expression vs. Age") +
-#   xlab("Age") +
-#   ylab("Gene Expression")
+## Scatter plot: Age vs Gene Expression factoring for ICU status
 
-
+```{r warning=FALSE}
 
 my_colors_1 <- c("#4DAF4A", "#FF7F00")
 
@@ -138,7 +115,9 @@ ggplot(final_subset, aes(x = age, y = gene_expression_value, color = icu_status)
   ylab("Gene Expression")
 ```
 
-```{r}
+## Box plot: Gene Expression by COVID and ICU Status
+
+```{r warning=FALSE}
 
 my_colors_2 <- c("#377eb8", "#e41a1c")
 ggplot(final_subset, aes(x = disease_status, y = gene_expression_value, fill = icu_status)) +
