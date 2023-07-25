@@ -7,6 +7,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(mice)
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
@@ -66,7 +67,20 @@ final_df <- final_df %>%
   mutate_at(vars(age, apacheii,ferritin.ng.ml., crp.mg.l., ddimer.mg.l_feu., procalcitonin.ng.ml.., lactate.mmol.l., fibrinogen, sofa), as.integer)
 
 ```
+## Optional - handle missing values
+```{r warning=FALSE, echo=TRUE}
+# check all the numeric colums
+num_cols <- names(select_if(final_df, is.numeric))
 
+# Create an imputation model
+imputation_model <- mice(final_df[num_cols], method = "pmm", printFlag = FALSE)
+
+# Perform the imputation
+imputed_data_final <- complete(imputation_model)
+# update the final data frame with the imputed values
+final_df[num_cols] <- imputed_data_final[num_cols]
+
+```
 ## Create a sub set with a chosen continous covariate and 2 categorical covariates
 ```{r warning=FALSE}
 final_subset <- final_df[final_df$gene == 'AAMP', c('gene','gene_expression_value','age', 'icu_status', 'disease_status')]
