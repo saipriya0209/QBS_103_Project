@@ -1,8 +1,10 @@
 ---
-title: "Final_Project_Presentation_1"
-author: "Sai_Lakkireddy"
+title: "Final Project Presentation 1"
+author: "Sai Lakkireddy"
 date: "2023-07-24"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -12,6 +14,13 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 ```
+## **Chosen Gene: AAMP**\
+
+**AAMP stands for "Angio-Associated Migratory Cell Protein" gene. This gene is responsible for making the AAMP protein, which is involved in cell movement and angiogenesis, contributing to processes like wound healing and tissue repair. Genes and their corresponding proteins are crucial for the proper functioning of our bodies.**\
+
+**In this analysis, we study the association between AAMP's gene expression, age, COVID Status and ICU Status**\
+
+
 
 ## Importing and combining the Data from two csv files
 Steps:\
@@ -64,7 +73,9 @@ final_df <- final_df %>%
 
 #convert the class of age, charlson_score
 final_df <- final_df %>% 
-  mutate_at(vars(age, apacheii,ferritin.ng.ml., crp.mg.l., ddimer.mg.l_feu., procalcitonin.ng.ml.., lactate.mmol.l., fibrinogen, sofa), as.integer)
+  mutate_at(vars(age, apacheii,ferritin.ng.ml., 
+                 crp.mg.l., ddimer.mg.l_feu., 
+                 procalcitonin.ng.ml.., lactate.mmol.l., fibrinogen, sofa), as.integer)
 
 ```
 ## Optional - handle missing values
@@ -81,9 +92,13 @@ imputed_data_final <- complete(imputation_model)
 final_df[num_cols] <- imputed_data_final[num_cols]
 
 ```
-## Create a sub set with a chosen continous covariate and 2 categorical covariates
+## Create a subset the AAMP Gene and the chosen covariates
+
 ```{r warning=FALSE}
-final_subset <- final_df[final_df$gene == 'AAMP', c('gene','gene_expression_value','age', 'icu_status', 'disease_status')]
+final_subset <- final_df[final_df$gene == 'AAMP', 
+                         c('gene',
+                           'gene_expression_value','age', 
+                           'icu_status', 'disease_status')]
 
 head(final_subset)
 ```
