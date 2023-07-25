@@ -7,15 +7,36 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
 ```
 
 ## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
 ```{r import data}
+
+
+setwd("../")
+data_gene_Expression <- read.csv("data/QBS103_finalProject_geneExpression.csv", header=TRUE)
+# head(data_gene_Expression)
+
+
+data_meta <- read.csv("data/QBS103_finalProject_metadata.csv", header=TRUE)
+#head(data_meta)
+
+#Since we have so many columns that are the data we need to combine our df with other file, we convert this wide from into long form
+
+
+data_gene_Expression.longForm <- data_gene_Expression %>%
+  pivot_longer(cols = starts_with(c("COVID_","NONCOVID_")),
+  names_to = "participant_id",
+  values_to = "gene_expression_value"
+  )
+
+#make a final data frame by combining the two data sets
+
+final_df <- data_gene_Expression.longForm %>% inner_join( data_meta, 
+           by=c('participant_id'))
 
 ```
 
@@ -23,8 +44,115 @@ When you click the **Knit** button a document will be generated that includes bo
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r tidy the data}
+
+#rename with x column with gene
+
+final_df <- rename(final_df, gene = X)
+#convert all the unknown strings in the data from to NAs
+#final_df$apacheii <- na_if(final_df$apacheii, ' unknown')
+
+final_df[, 16:27][final_df[, 16:27] == ' unknown' | final_df[, 16:27] == 'unknown'] <- NA
+
+#format the disease status column to just include the status
+
+
+
+final_df$disease_status <- sub('disease state: ', '', final_df$disease_status)
+
+#convert the column type of disease_status, sex, icu_status and mechanical_ventilation to factor
+final_df <- final_df %>% 
+  mutate_at(vars(disease_status, sex, icu_status, mechanical_ventilation), as.factor)
+
+#the class of age, charlson_score is character where it should be numerical
+
+
+
+#Convert it to integer
+
+#final_df$age <- as.integer(final_df$age)
+
+final_df <- final_df %>% 
+  mutate_at(vars(age, apacheii,ferritin.ng.ml., crp.mg.l., ddimer.mg.l_feu., procalcitonin.ng.ml.., lactate.mmol.l., fibrinogen, sofa), as.integer)
+
+#lets see the unique genes are there in the data frame
+unique(final_df$gene)
+
+#frequency_df <- data.frame('gene' = unique(final_df$gene),'')
+#frequency_df <- as.data.frame(table(final_df$gene))
+
+```
+Identify one gene, one continuous covariate, and two categorical covariates in the
+provided dataset.
+```{r}
+# i will choose the  gene
+# my one  continuous covariate would be age and the two categorical covariates would be ICU status and disease status
+#ABCB10
+
+
+final_subset <- final_df[final_df$gene == 'AAMP', c('gene','gene_expression_value','age', 'icu_status', 'disease_status')]
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+# Create the histogram plot for Gene Expression
+ggplot(final_subset, aes(x = gene_expression_value))  +
+  geom_histogram(binwidth = 2, color = "white", fill = "#DB7093") +
+  theme_minimal() +
+    theme(
+    panel.background = element_rect(fill = "black"),
+    plot.background = element_rect(fill = "black"),
+    axis.line = element_line(color = "white"),
+    axis.text = element_text(color = "white"),
+    panel.grid = element_blank(),
+    plot.title = element_text(color = "white", size = 16, face = "bold", hjust = 0.4)
+  ) +
+  ggtitle("Histogram of gene expression") +
+  xlab("gene expression")+
+  ylab("Frequency")
+```
+
+```{r}
+# ggplot(final_subset, aes(x = age, y = gene_expression_value)) +
+#   geom_point(color = "blue") +
+#   ggtitle("Scatter Plot of Gene Expression vs. Age") +
+#   xlab("Age") +
+#   ylab("Gene Expression")
+
+
+
+my_colors_1 <- c("#4DAF4A", "#FF7F00")
+
+
+# Create the scatter plot with custom color scheme
+ggplot(final_subset, aes(x = age, y = gene_expression_value, color = icu_status)) +
+  geom_point(size = 3) +
+  scale_color_manual(values = my_colors_1) +
+  theme_minimal() +
+      theme(
+    plot.title = element_text(color = "navy", size = 13, face = "bold", hjust = 0.4)
+  ) +
+  ggtitle("Scatter Plot: Gene Expression vs Age with ICU Status") +
+  xlab("Age") +
+  ylab("Gene Expression")
+```
+
+```{r}
+
+my_colors_2 <- c("#377eb8", "#e41a1c")
+ggplot(final_subset, aes(x = disease_status, y = gene_expression_value, fill = icu_status)) +
+  geom_boxplot(color = "black", width = 0.5, alpha = 0.8) +
+  scale_fill_manual(values = my_colors_2) +
+  theme_minimal() +
+    theme_minimal() +
+      theme(
+    plot.title = element_text(color = "darkgreen", size = 13, face = "bold", hjust = 0.4)
+  )+
+  ggtitle("Box plot of Gene Expression by COVID and ICU Status") +
+  xlab("Disease Status") +
+  ylab("Gene Expression")
+
+
+
+```
