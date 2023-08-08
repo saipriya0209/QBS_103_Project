@@ -49,6 +49,8 @@ data_gene_Expression.longForm <- data_gene_Expression %>%
 final_df <- as.data.frame(data_gene_Expression.longForm %>% inner_join( data_meta, 
            by=c('participant_id')))
 
+head(final_df)
+
 ```
 
 ## Pre-processing the data
@@ -77,6 +79,8 @@ final_df <- final_df %>%
                  crp.mg.l., ddimer.mg.l_feu., 
                  procalcitonin.ng.ml.., lactate.mmol.l., fibrinogen, sofa), as.integer)
 
+head(final_df)
+
 ```
 ## Optional - handle missing values
 ```{r warning=FALSE, echo=TRUE}
@@ -90,6 +94,8 @@ imputation_model <- mice(final_df[num_cols], method = "pmm", printFlag = FALSE)
 imputed_data_final <- complete(imputation_model)
 # update the final data frame with the imputed values
 final_df[num_cols] <- imputed_data_final[num_cols]
+
+head(final_df)
 
 ```
 ## Create a subset the AAMP Gene and the chosen covariates
@@ -107,8 +113,12 @@ head(final_subset)
 
 ```{r warning=FALSE}
 
+breaks <- seq(0, 15, by = 3)  # Adjust the range as needed
+
+# Create the histogram with integer bins
 ggplot(final_subset, aes(x = gene_expression_value)) +
-  geom_histogram(binwidth = 2, color = "white", fill = "#DB7093") +
+  geom_histogram(binwidth = 3, color = "white", fill = "#DB7093") +
+  scale_y_continuous(breaks = breaks) +
   theme_minimal() +
   theme(
     panel.background = element_rect(fill = "black"),
@@ -119,9 +129,9 @@ ggplot(final_subset, aes(x = gene_expression_value)) +
     panel.grid = element_blank(),
     plot.title = element_text(color = "white", size = 16, face = "bold", hjust = 0.4),
   ) +
-  ggtitle("Histogram of gene expression") +
-  xlab("Gene Expression") +
-  ylab("Frequency")
+  ggtitle(expression(paste("Histogram of ",italic("AAMP")," Gene expression"))) +
+  xlab(expression(paste(italic("AAMP"), " Gene Expression"))) +
+  ylab("Number of Occurrences")
 ```
 
 ## Scatter plot: Age vs Gene Expression factoring for ICU status
@@ -134,14 +144,14 @@ my_colors_1 <- c("#4DAF4A", "#FF7F00")
 # Create the scatter plot with custom color scheme
 ggplot(final_subset, aes(x = age, y = gene_expression_value, color = icu_status)) +
   geom_point(size = 3) +
-  scale_color_manual(values = my_colors_1) +
+  scale_color_manual(values = my_colors_1, name = "ICU Status of Patient") +
   theme_minimal() +
       theme(
     plot.title = element_text(color = "navy", size = 13, face = "bold", hjust = 0.4)
   ) +
-  ggtitle("Scatter Plot: Gene Expression vs Age with ICU Status") +
+  ggtitle(expression(paste("Scatter Plot: ",italic("AAMP")," Gene Expression vs Age and ICU Status"))) +
   xlab("Age") +
-  ylab("Gene Expression")
+  ylab(expression(paste(italic("AAMP"),"Gene Expression")))
 ```
 
 ## Box plot: Gene Expression by COVID and ICU Status
@@ -151,16 +161,17 @@ ggplot(final_subset, aes(x = age, y = gene_expression_value, color = icu_status)
 my_colors_2 <- c("#377eb8", "#e41a1c")
 ggplot(final_subset, aes(x = disease_status, y = gene_expression_value, fill = icu_status)) +
   geom_boxplot(color = "black", width = 0.5, alpha = 0.8) +
-  scale_fill_manual(values = my_colors_2) +
+  scale_fill_manual(values = my_colors_2, name = "ICU Status of Patient") +
+  geom_jitter(position = position_jitterdodge(), aes(color = icu_status, fill = icu_status), shape = 21, alpha = 0.5) +
+  scale_x_discrete(labels = c("COVID-19" = "Positive", "non-COVID-19" = "Negative")) +  # Rename factor levels
   theme_minimal() +
     theme_minimal() +
       theme(
     plot.title = element_text(color = "darkgreen", size = 13, face = "bold", hjust = 0.4)
   )+
   ggtitle("Box plot of Gene Expression by COVID and ICU Status") +
-  xlab("Disease Status") +
+  xlab("COVID-19 Status") +
   ylab("Gene Expression")
-
 
 
 ```
