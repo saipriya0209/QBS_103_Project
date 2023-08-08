@@ -172,6 +172,77 @@ ggplot(final_subset, aes(x = disease_status, y = gene_expression_value, fill = i
   ggtitle("Box plot of Gene Expression by COVID and ICU Status") +
   xlab("COVID-19 Status") +
   ylab("Gene Expression")
+```
+
+```{r warning=FALSE}
+my_plots_function <- function(dataFrame, genes.list, cont.covariate, cat.covariates) {
+  #breaks <- seq(min(freque), 15, by = 3)
+  my_colors_1 <- c("#4DAF4A", "#FF7F00")
+  my_colors_2 <- c("#377eb8", "#e41a1c")
+  all.plots.list <- list()
+
+  for (gene in genes.list) {
+    gene_subset <- final_df[final_df$gene == gene, 
+                            c('gene','gene_expression_value',paste(cont.covariate), paste(cat.covariates))]
+
+    
+   histogram <- ggplot(gene_subset, aes(x = gene_expression_value)) +
+  geom_histogram(binwidth = 1, color = "white", fill = "#DB7093") +
+  #scale_y_continuous(breaks = breaks) +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "black"),
+    plot.background = element_rect(fill = "black"),
+    axis.line = element_line(color = "white"),
+    axis.text = element_text(color = "white", size = 12),
+    axis.title = element_text(color = "white", size = 14),
+    panel.grid = element_blank(),
+    plot.title = element_text(color = "white", size = 16, face = "bold", hjust = 0.4),
+  ) +
+  ggtitle(substitute(Histogram ~ of ~ italic(gene) ~ Gene ~ expression, list(gene = gene))) +
+  xlab(substitute(italic(gene) ~ Gene ~ Expression, list(gene = gene))) +
+  ylab("Number of Occurrences")
+
+
+  scatter.plot <- ggplot(gene_subset, aes(x = gene_expression_value, y = gene_subset[[cont.covariate]], color = gene_subset[[cat.covariates[1]]])) +
+  geom_point(size = 3) +
+  scale_color_manual(values = my_colors_1, name = "ICU Status of Patient") +
+  theme_minimal() +
+      theme(
+    plot.title = element_text(color = "navy", size = 13, face = "bold", hjust = 0.4)
+  ) +
+  ggtitle(substitute(Scatter ~ Plot ~ italic(gene) ~ Gene ~ Expression ~ vs ~ Age ~ and ~ ICU ~ Status)) +
+  xlab(substitute(cont.covariate)) +
+  ylab(substitute(italic(gene) ~ Gene ~ Expression))
+
+  
+box.plot <- ggplot(gene_subset, aes(x = gene_subset[[cat.covariates[1]]], y = gene_expression_value, fill = gene_subset[[cat.covariates[2]]])) +
+  geom_boxplot(color = "black", width = 0.5, alpha = 0.8) +
+  scale_fill_manual(values = my_colors_2, name = "ICU Status of Patient") +
+  geom_jitter(position = position_jitterdodge(), alpha = 0.5) +
+  scale_x_discrete(labels = c("COVID-19" = "Positive", "non-COVID-19" = "Negative")) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(color = "darkgreen", size = 13, face = "bold", hjust = 0.4)
+  ) +
+  ggtitle(substitute(Box ~ plot ~ of ~ italic(gene) ~ Gene ~ Expression ~ by ~ COVID ~ and ~ ICU ~ Status)) +
+  xlab("COVID-19 Status") +
+  ylab("Gene Expression")
+
+
+    all.plots.list[[gene]] <- list(histogram = histogram, scatter.plot = scatter.plot, box.plot = box.plot)
+  }
+
+  return(all.plots.list)
+}
+
+all.plots.list <- my_plots_function(final_subset, c('ABHD18', 'AAMP', 'ABHD17C'), 'age', c('disease_status', 'icu_status'))
+
+for (gene in names(all.plots.list)) {
+  print(all.plots.list[[gene]]$histogram)
+  print(all.plots.list[[gene]]$scatter.plot)
+  print(all.plots.list[[gene]]$box.plot)
+}
 
 
 ```
