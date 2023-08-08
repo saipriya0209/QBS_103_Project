@@ -204,7 +204,7 @@ my_plots_function <- function(dataFrame, genes.list, cont.covariate, cat.covaria
   ylab("Number of Occurrences")
 
 
-  scatter.plot <- ggplot(gene_subset, aes(x = gene_expression_value, y = gene_subset[[cont.covariate]], color = gene_subset[[cat.covariates[1]]])) +
+  scatter.plot <- ggplot(gene_subset, aes(x = gene_expression_value, y = gene_subset[[cont.covariate]], color = gene_subset[[cat.covariates[2]]])) +
   geom_point(size = 3) +
   scale_color_manual(values = my_colors_1, name = "ICU Status of Patient") +
   theme_minimal() +
