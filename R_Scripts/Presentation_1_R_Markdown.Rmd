@@ -15,15 +15,15 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 ```
-## **Chosen Gene: AAMP**\
+
+## **Chosen Gene: AAMP** 
 
 **AAMP stands for "Angio-Associated Migratory Cell Protein" gene. This gene is responsible for making the AAMP protein, which is involved in cell movement and angiogenesis, contributing to processes like wound healing and tissue repair. Genes and their corresponding proteins are crucial for the proper functioning of our bodies.**\
 
 **In this analysis, we study the association between AAMP's gene expression, age, COVID Status and ICU Status**\
 
-
-
 ## Importing and combining the Data from two csv files
+
 Steps:\
 1. Import both the csv files\
 2. Convert the gene expression into long format\
@@ -50,11 +50,12 @@ data_gene_Expression.longForm <- data_gene_Expression %>%
 final_df <- as.data.frame(data_gene_Expression.longForm %>% inner_join( data_meta, 
            by=c('participant_id')))
 
-head(final_df)
+#head(final_df)
 
 ```
 
 ## Pre-processing the data
+
 Steps:\
 1. Remove "unknown" strings and prefixes\
 2. Convert the class the columns to their appropriate type\
@@ -80,10 +81,12 @@ final_df <- final_df %>%
                  crp.mg.l., ddimer.mg.l_feu., 
                  procalcitonin.ng.ml.., lactate.mmol.l., fibrinogen, sofa), as.integer)
 
-head(final_df)
+#head(final_df)
 
 ```
+
 ## Optional - handle missing values
+
 ```{r warning=FALSE, echo=TRUE}
 # check all the numeric colums
 num_cols <- names(select_if(final_df, is.numeric))
@@ -93,12 +96,13 @@ imputation_model <- mice(final_df[num_cols], method = "pmm", printFlag = FALSE)
 
 # Perform the imputation
 imputed_data_final <- complete(imputation_model)
-# update the final data frame with the imputed values
+
 final_df[num_cols] <- imputed_data_final[num_cols]
 
-head(final_df)
+#head(final_df)
 
 ```
+
 ## Create a subset the AAMP Gene and the chosen covariates
 
 ```{r warning=FALSE}
@@ -107,7 +111,7 @@ final_subset <- final_df[final_df$gene == 'AAMP',
                            'gene_expression_value','age', 
                            'icu_status', 'disease_status')]
 
-head(final_subset)
+#head(final_subset)
 ```
 
 ## Histogram for Gene Expression
@@ -153,6 +157,17 @@ ggplot(final_subset, aes(x = age, y = gene_expression_value, color = icu_status)
   ggtitle(expression(paste("Scatter Plot: ",italic("AAMP")," Gene Expression vs Age and ICU Status"))) +
   xlab("Age") +
   ylab(expression(paste(italic("AAMP"),"Gene Expression")))
+```
+
+```{r warning=FALSE}
+
+ggplot(final_subset, aes(x = age, y = gene_expression_value)) +
+  geom_hex(bins = 20) +
+  scale_fill_viridis_c() +
+  labs(title = "Hexbin Scatter Plot: Gene Expression Value vs Age",
+       x = "Age",
+       y = "Gene Expression Value") +
+  theme_minimal()
 ```
 
 ## Box plot: Gene Expression by COVID and ICU Status
@@ -207,7 +222,7 @@ my_plots_function <- function(dataFrame, genes.list, cont.covariate, cat.covaria
   ylab("Number of People")
 
 
-  scatter.plot <- ggplot(gene_subset, aes(x = gene_expression_value, y = gene_subset[[cont.covariate]], color = gene_subset[[cat.covariates[2]]])) +
+  scatter.plot <- ggplot(gene_subset, aes(y = gene_expression_value, x = gene_subset[[cont.covariate]], color = gene_subset[[cat.covariates[2]]])) +
   geom_point(size = 3) +
   scale_color_manual(values = my_colors_1, name = "ICU Status of Patient") +
   theme_minimal() +
@@ -247,5 +262,135 @@ for (gene in names(all.plots.list)) {
   print(all.plots.list[[gene]]$box.plot)
 }
 
+
+```
+##Final presentation subset with 3 (1+2) Continous co-variates and 3(2+1) co-variates
+```{r warning=FALSE}
+final_df_subset <- final_df[, c('participant_id', 'gene', 'gene_expression_value', 'age', 'charlson_score',
+                                 'fibrinogen', 'icu_status', 'disease_status', 'mechanical_ventilation')]
+
+head(final_df_subset)
+
+```
+```{r warning=FALSE}
+
+duplicates <- duplicated(final_df_subset$participant_id)
+final_df_subset <- final_df_subset[!duplicates, ]
+rownames(final_df_subset) <- final_df_subset$participant_id
+final_df_subset$participant_id <- NULL
+head(final_df_subset)
+
+```
+```{r warning=FALSE}
+library(knitr)
+library(kableExtra)
+
+table1 <- data.frame(
+  'Variable' = c('Gene Expression Value mean (sd)',
+                 'Age mean (sd)',
+                 'Charlson Score (sd)',
+                 'Fibrinogen (sd)',
+                 'Disease Status n (%)',
+                 'COVID-19',
+                 'non-COVID-19',
+                 'Mechanical Ventilation n (%)',
+                 'yes',
+                 'no'),
+  'Value' = c(
+    paste(round(mean(final_df_subset$gene_expression_value), 2),
+          ' (',
+          round(sd(final_df_subset$gene_expression_value), 2),
+          ')'),
+    paste(round(mean(final_df_subset$age), 2),
+          ' (',
+          round(sd(final_df_subset$age), 2),
+          ')'),
+    paste(round(mean(final_df_subset$charlson_score), 2),
+          ' (',
+          round(sd(final_df_subset$charlson_score), 2),
+          ')'),
+    paste(round(mean(final_df_subset$fibrinogen), 2),
+          ' (',
+          round(sd(final_df_subset$fibrinogen), 2),
+          ')'),
+    ' ',
+    paste(round(nrow(final_df_subset[final_df_subset$disease_status == "COVID-19", ]) * 100 / nrow(final_df_subset), 2),
+          '%'),
+    paste(round(nrow(final_df_subset[final_df_subset$disease_status == "non-COVID-19", ]) * 100 / nrow(final_df_subset), 2),
+          '%'),' ',
+    paste(round(nrow(final_df_subset[final_df_subset$mechanical_ventilation == " yes", ]) * 100 / nrow(final_df_subset), 2),
+          '%'),
+    paste(round(nrow(final_df_subset[final_df_subset$mechanical_ventilation == " no", ]) * 100 / nrow(final_df_subset), 2),
+          '%')
+  )
+)
+
+kable(x = table1, caption = 'Summary Statistics Table 1',
+      col.names = c("Variable", "Value"),
+      align = c('l','c'), escape = FALSE) %>%
+  add_indent(positions = c(6,7,9,10)) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+
+```
+##Convert long format to wide format and drop NA rows
+```{r warning=FALSE}
+library(tidyr)
+
+pivoted_final_df <- reshape(
+  data = final_df_subset,
+  idvar = c("participant_id","age", "charlson_score", "fibrinogen", "icu_status", "disease_status", "mechanical_ventilation"),
+  timevar = "gene",
+  direction = "wide"
+)
+
+head(pivoted_final_df)
+
+pivoted_final_df <- na.omit(pivoted_final_df)
+
+```
+
+```{r}
+library(pheatmap)
+library(RColorBrewer)
+
+set.seed(100)
+
+genes.names <- c("gene_expression_value.A2ML1","gene_expression_value.A3GALT2",
+                 "gene_expression_value.A4GALT","gene_expression_value.A4GNT",
+                 "gene_expression_value.AAAS" ,"gene_expression_value.AACS",
+                 "gene_expression_value.ABHD5","gene_expression_value.ABHD6",
+                 "gene_expression_value.ABHD8","gene_expression_value.ABI1")
+tengene.data <- pivoted_final_df[,genes.names]
+
+head(tengene.data)
+
+heatmap.data <- pivoted_final_df[c("icu_status","disease_status","gene_expression_value.A2ML1","gene_expression_value.A3GALT2",
+                 "gene_expression_value.A4GALT","gene_expression_value.A4GNT",
+                 "gene_expression_value.AAAS" ,"gene_expression_value.AACS",
+                 "gene_expression_value.ABHD5","gene_expression_value.ABHD6",
+                 "gene_expression_value.ABHD8","gene_expression_value.ABI1")]
+
+ann.data <- heatmap.data[c("icu_status", "disease_status")]
+
+brewercolors <- brewer.pal(8, "Pastel2")
+
+ann.colors <- list(
+"icu_status" = c(' no' = 'coral',
+' yes' = 'turquoise'),
+"disease_status" = c('COVID-19' = 'pink',
+'non-COVID-19' = 'lightgreen')
+)
+
+pheatmap(
+as.matrix(scale(heatmap.data[,3:12])),
+cluster_rows = TRUE,
+cluster_cols = TRUE,
+show_rownames = FALSE,
+fontsize = 8,
+main = "Heat map with 10 Genes",
+annotation_row = ann.data,
+annotation_colors = ann.colors,
+color = brewercolors
+)
 
 ```
