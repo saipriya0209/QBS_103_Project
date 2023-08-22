@@ -1,11 +1,11 @@
 ---
 title: "Project Presentation"
 author: "Sai Lakkireddy"
-date: "2023-08-08"
+date: "2023-22-08"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -167,6 +167,7 @@ ggplot(final_subset, aes(x = age, y = gene_expression_value)) +
   labs(title = "Hexbin Scatter Plot: Gene Expression Value vs Age",
        x = "Age",
        y = "Gene Expression Value") +
+  ggtitle(expression(paste("Hex Bin Plot: ",italic("AAMP")," Gene Expression vs Age"))) +
   theme_minimal()
 ```
 
@@ -272,18 +273,11 @@ final_df_subset <- final_df[, c('participant_id', 'gene', 'gene_expression_value
 head(final_df_subset)
 
 ```
+##Used the code from the class to get the statistics table
+##Put the table in the latex file (cannot knit it)
 ```{r warning=FALSE}
-
-duplicates <- duplicated(final_df_subset$participant_id)
-final_df_subset <- final_df_subset[!duplicates, ]
-rownames(final_df_subset) <- final_df_subset$participant_id
-final_df_subset$participant_id <- NULL
-head(final_df_subset)
-
-```
-```{r warning=FALSE}
-library(knitr)
-library(kableExtra)
+#library(knitr)
+#library(kableExtra)
 
 table1 <- data.frame(
   'Variable' = c('Gene Expression Value mean (sd)',
@@ -325,11 +319,12 @@ table1 <- data.frame(
   )
 )
 
-kable(x = table1, caption = 'Summary Statistics Table 1',
-      col.names = c("Variable", "Value"),
-      align = c('l','c'), escape = FALSE) %>%
-  add_indent(positions = c(6,7,9,10)) %>%
-  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+#kable(x = table1, caption = 'Summary Statistics Table 1',
+      #col.names = c("Variable", "Value"),
+      #align = c('l','c'), escape = FALSE) %>%
+  #add_indent(positions = c(6,7,9,10)) %>%
+  #kable_styling(bootstrap_options = "striped", full_width = FALSE)
+
 
 ```
 ##Convert long format to wide format and drop NA rows
@@ -370,14 +365,19 @@ heatmap.data <- pivoted_final_df[c("icu_status","disease_status","gene_expressio
                  "gene_expression_value.ABHD5","gene_expression_value.ABHD6",
                  "gene_expression_value.ABHD8","gene_expression_value.ABI1")]
 
-ann.data <- heatmap.data[c("icu_status", "disease_status")]
+colnames(heatmap.data) <- c("ICU Status","Disease Status","A2ML1","A3GALT2",
+                 "A4GALT","A4GNT",
+                 "AAAS" ,"AACS",
+                 "ABHD5","ABHD6",
+                 "ABHD8","ABI1")
+ann.data <- heatmap.data[c("ICU Status", "Disease Status")]
 
 brewercolors <- brewer.pal(8, "Pastel2")
 
 ann.colors <- list(
-"icu_status" = c(' no' = 'coral',
+"ICU Status" = c(' no' = 'coral',
 ' yes' = 'turquoise'),
-"disease_status" = c('COVID-19' = 'pink',
+"Disease Status" = c('COVID-19' = 'pink',
 'non-COVID-19' = 'lightgreen')
 )
 
